@@ -10,6 +10,7 @@ class LoginResponseTest {
     void shouldCreateLoginResponse() {
         LoginResponse response = new LoginResponse(
                 "token123",
+                "tokenRefresh",
                 "Bearer",
                 "arpita",
                 "9876543210",
