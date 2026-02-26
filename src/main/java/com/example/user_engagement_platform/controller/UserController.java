@@ -51,7 +51,6 @@ public class UserController {
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(
             @RequestBody RefreshTokenRequest request) {
-
         RefreshTokenResponse response =
                 userService.refreshAccessToken(request);
 

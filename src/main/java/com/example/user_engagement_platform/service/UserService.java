@@ -9,11 +9,11 @@ import com.example.user_engagement_platform.exception.*;
 import com.example.user_engagement_platform.repository.RefreshTokenRepository;
 import com.example.user_engagement_platform.repository.UserConsentRepository;
 import com.example.user_engagement_platform.repository.UserRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -26,23 +26,21 @@ public class UserService {
     private final JwtService jwtService;
     private final UserConsentRepository userConsentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserCachingService userCachingService;
 
     public RegisterResponse createUser(RegisterRequest request) {
 
         String userEmail = request.getEmail().trim().toLowerCase();
-        String userNumber = request.getMobileNumber().trim();
-        String userPassword = request.getPassword().trim();
-        String userName = request.getName().trim();
 
         if (userRepository.existsByEmail(userEmail)) {
             throw new UserAlreadyExistsException("User exists by email");
         }
 
         UserEntity user = new UserEntity();
-        user.setName(userName);
+        user.setName(request.getName().trim());
         user.setEmail(userEmail);
-        user.setMobileNumber(userNumber);
-        user.setPassword(passwordEncoder.encode(userPassword));
+        user.setMobileNumber(request.getMobileNumber().trim());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Constant.USER);
         user.setStatus(Constant.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
@@ -58,29 +56,29 @@ public class UserService {
                 .status(savedUser.getStatus())
                 .createdAt(savedUser.getCreatedAt())
                 .build();
-
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
 
-        String userEmail = request.getEmail().trim().toLowerCase();
+        String email = request.getEmail().trim().toLowerCase();
 
-        UserEntity user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("Invalid email or password"));
+        // 🔥 DO NOT use cache for password verification
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-
-        String rawPassword = request.getPassword();
-        String trimmedPassword = rawPassword.trim();
-
-        if (!passwordEncoder.matches(trimmedPassword, user.getPassword())) {
-            throw new UserNotFoundException("Invalid email or password");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new UserNotFoundException("Invalid credentials");
         }
 
+        // Now you can optionally use cache for profile data
+        UserCacheDto cached = userCachingService.getUserByEmail(email);
 
-        String token = jwtService.generateToken(user);
+        refreshTokenRepository.revokeTokensByUser(user);
+
+        String accessToken = jwtService.generateToken(user);
         String refreshTokenValue = jwtService.generateRefreshToken(user);
 
-        //setting refresh Token table
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setToken(refreshTokenValue);
@@ -90,7 +88,7 @@ public class UserService {
         refreshTokenRepository.save(refreshToken);
 
         return new LoginResponse(
-                token,
+                accessToken,
                 refreshTokenValue,
                 "Bearer",
                 user.getEmail(),
@@ -99,15 +97,16 @@ public class UserService {
         );
     }
 
-    public ConsentResponse updateConsent(@Valid ConsentRequest request) {
-
+    public ConsentResponse updateConsent(ConsentRequest request) {
 
         String loggedInEmail = SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getName();
 
-        UserEntity user = userRepository.findByEmail(loggedInEmail)
+        UserCacheDto cachedUser = userCachingService.getUserByEmail(loggedInEmail);
+
+        UserEntity user = userRepository.findById(cachedUser.getId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         UserConsent consent = userConsentRepository.findByUser(user)
@@ -134,6 +133,7 @@ public class UserService {
                 .build();
     }
 
+    @Transactional
     public RefreshTokenResponse refreshAccessToken(RefreshTokenRequest request) {
 
         String requestToken = request.getRefreshToken();
@@ -153,15 +153,14 @@ public class UserService {
 
         UserEntity user = storedToken.getUser();
 
-        // Revoke old token
+        // 🔥 Revoke old token properly
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        //Generate new tokens
+        // Generate new tokens
         String newAccessToken = jwtService.generateToken(user);
         String newRefreshToken = jwtService.generateRefreshToken(user);
 
-        //Save new refresh token
         RefreshToken newToken = new RefreshToken();
         newToken.setUser(user);
         newToken.setToken(newRefreshToken);
@@ -170,6 +169,9 @@ public class UserService {
 
         refreshTokenRepository.save(newToken);
 
-        return new RefreshTokenResponse(newAccessToken);
+        return new RefreshTokenResponse(
+                newAccessToken,
+                newRefreshToken
+        );
     }
 }
