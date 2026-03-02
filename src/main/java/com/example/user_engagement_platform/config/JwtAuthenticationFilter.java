@@ -30,9 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // ✅ Bypass JWT validation for public endpoints
-        if (path.startsWith("/api/v1/auth/")
-                || path.startsWith("/api/v1/refresh")) {
+        if (path.equals("/api/v1/auth/register")
+                || path.equals("/api/v1/auth/login")
+                || path.equals("/api/v1/refresh")){
 
             filterChain.doFilter(request, response);
             return;

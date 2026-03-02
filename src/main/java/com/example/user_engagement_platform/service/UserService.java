@@ -27,6 +27,7 @@ public class UserService {
     private final UserConsentRepository userConsentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserCachingService userCachingService;
+    private final ConsentProducer consentProducer;
 
     public RegisterResponse createUser(RegisterRequest request) {
 
@@ -63,7 +64,6 @@ public class UserService {
 
         String email = request.getEmail().trim().toLowerCase();
 
-        // 🔥 DO NOT use cache for password verification
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -71,9 +71,7 @@ public class UserService {
             throw new UserNotFoundException("Invalid credentials");
         }
 
-        // Now you can optionally use cache for profile data
-        UserCacheDto cached = userCachingService.getUserByEmail(email);
-
+        // Revoke old refresh tokens
         refreshTokenRepository.revokeTokensByUser(user);
 
         String accessToken = jwtService.generateToken(user);
@@ -97,6 +95,7 @@ public class UserService {
         );
     }
 
+    @Transactional
     public ConsentResponse updateConsent(ConsentRequest request) {
 
         String loggedInEmail = SecurityContextHolder
@@ -104,15 +103,19 @@ public class UserService {
                 .getAuthentication()
                 .getName();
 
-        UserCacheDto cachedUser = userCachingService.getUserByEmail(loggedInEmail);
+        UserCacheDto cachedUser =
+                userCachingService.getUserByEmail(loggedInEmail);
 
-        UserEntity user = userRepository.findById(cachedUser.getId())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Long userId = cachedUser.getId();
 
-        UserConsent consent = userConsentRepository.findByUser(user)
+        UserConsent consent = userConsentRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     UserConsent newConsent = new UserConsent();
-                    newConsent.setUser(user);
+
+                    UserEntity userRef = new UserEntity();
+                    userRef.setId(userId);
+                    newConsent.setUser(userRef);
+
                     return newConsent;
                 });
 
@@ -122,11 +125,17 @@ public class UserService {
 
         UserConsent savedConsent = userConsentRepository.save(consent);
 
+        if (savedConsent.getStatus() == 2) {
+
+            ProducerEvent event = new ProducerEvent();
+            event.setConsentId(savedConsent.getId());
+            event.setChannel(savedConsent.getChannel());
+
+            consentProducer.sendConsentEvent(event);
+        }
+
         return ConsentResponse.builder()
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .mobileNumber(user.getMobileNumber())
+                .userId(cachedUser.getId())
                 .channel(savedConsent.getChannel())
                 .status(savedConsent.getStatus())
                 .updatedAt(savedConsent.getUpdatedAt())
@@ -143,6 +152,8 @@ public class UserService {
                 .orElseThrow(() ->
                         new InvalidRefreshTokenException("Invalid refresh token"));
 
+        jwtService.isTokenValid(requestToken);
+
         if (storedToken.isRevoked()) {
             throw new RefreshTokenRevokedException("Refresh token revoked");
         }
@@ -153,11 +164,9 @@ public class UserService {
 
         UserEntity user = storedToken.getUser();
 
-        // 🔥 Revoke old token properly
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        // Generate new tokens
         String newAccessToken = jwtService.generateToken(user);
         String newRefreshToken = jwtService.generateRefreshToken(user);
 

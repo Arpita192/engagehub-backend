@@ -10,11 +10,6 @@ import java.time.LocalDateTime;
 public class ConsentResponse {
 
     private Long userId;
-
-    private String name;
-    private String email;
-    private String mobileNumber;
-
     private String channel;
     private int status;
     private LocalDateTime updatedAt;

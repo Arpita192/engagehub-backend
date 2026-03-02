@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
@@ -41,6 +43,13 @@ public class UserConsent {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(
+            mappedBy = "userConsent",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<NotificationRecord> notifications = new ArrayList<>();
 
 }
 
