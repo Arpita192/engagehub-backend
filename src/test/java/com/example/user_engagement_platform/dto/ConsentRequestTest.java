@@ -1,60 +1,47 @@
 package com.example.user_engagement_platform.dto;
 
+import com.example.user_engagement_platform.enums.PromotionConsent;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.Arguments;
-
-import java.util.stream.Stream;
-
 class ConsentRequestTest {
 
-    private static Validator validator;
+    private Validator validator;
 
-    @BeforeAll
-    static void setupValidator() {
+    @BeforeEach
+    void setup() {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
 
-    @ParameterizedTest
-    @MethodSource("provideConsentRequests")
-    void shouldValidateConsentRequest(
-            Integer status,
-            String channel,
-            boolean expectedValid
-    ) {
+    @Test
+    void shouldFailWhenPromotionConsentIsNull() {
+
         ConsentRequest request = new ConsentRequest();
-        request.setStatus(status);
-        request.setChannel(channel);
 
         Set<ConstraintViolation<ConsentRequest>> violations =
                 validator.validate(request);
 
-        if (expectedValid) {
-            assertTrue(violations.isEmpty());
-        } else {
-            assertFalse(violations.isEmpty());
-        }
+        assertFalse(violations.isEmpty());
     }
 
-    static Stream<Arguments> provideConsentRequests() {
-        return Stream.of(
-                Arguments.of(2, "SMS", true),
-                Arguments.of(null, "EMAIL", false),
-                Arguments.of(-1, "SMS", false),
-                Arguments.of(3, "SMS", false),
-                Arguments.of(1, "WHATSAPP", false),
-                Arguments.of(1, "", false)
-        );
+    @Test
+    void shouldPassWhenPromotionConsentIsProvided() {
+
+        ConsentRequest request = new ConsentRequest();
+        request.setPromotionConsent(PromotionConsent.YES);
+
+        Set<ConstraintViolation<ConsentRequest>> violations =
+                validator.validate(request);
+
+        assertTrue(violations.isEmpty());
     }
 }

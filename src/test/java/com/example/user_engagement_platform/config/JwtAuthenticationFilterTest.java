@@ -1,6 +1,6 @@
 package com.example.user_engagement_platform.config;
 
-import com.example.user_engagement_platform.service.JwtService;
+import com.example.user_engagement_platform.service.implementation.JwtServiceImp;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class JwtAuthenticationFilterTest {
 
-    private JwtService jwtService;
+    private JwtServiceImp jwtServiceImp;
     private JwtAuthenticationFilter filter;
 
     private HttpServletRequest request;
@@ -21,8 +21,8 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = mock(JwtService.class);
-        filter = new JwtAuthenticationFilter(jwtService);
+        jwtServiceImp = mock(JwtServiceImp.class);
+        filter = new JwtAuthenticationFilter(jwtServiceImp);
 
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
@@ -40,8 +40,8 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization"))
                 .thenReturn("Bearer " + token);
 
-        when(jwtService.extractEmail(token)).thenReturn(email);
-        when(jwtService.isTokenValid(token)).thenReturn(true);
+        when(jwtServiceImp.extractEmail(token)).thenReturn(email);
+        when(jwtServiceImp.isTokenValid(token)).thenReturn(true);
 
         filter.doFilter(request, response, filterChain);
 
@@ -62,8 +62,8 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization"))
                 .thenReturn("Bearer " + token);
 
-        when(jwtService.extractEmail(token)).thenReturn("arpita@test.com");
-        when(jwtService.isTokenValid(token)).thenReturn(false);
+        when(jwtServiceImp.extractEmail(token)).thenReturn("arpita@test.com");
+        when(jwtServiceImp.isTokenValid(token)).thenReturn(false);
 
         filter.doFilter(request, response, filterChain);
 

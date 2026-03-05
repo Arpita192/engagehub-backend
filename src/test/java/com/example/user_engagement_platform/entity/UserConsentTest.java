@@ -1,6 +1,6 @@
 package com.example.user_engagement_platform.entity;
 
-import org.junit.jupiter.api.BeforeAll;
+import com.example.user_engagement_platform.enums.PromotionConsent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -9,57 +9,42 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserConsentTest {
 
-    private static UserConsent consent;
-    private static UserEntity user;
-    private static LocalDateTime now;
+    @Test
+    void shouldCreateUserConsentUsingBuilder() {
 
-    @BeforeAll
-    static void setup() {
-
-        now = LocalDateTime.now();
-
-        user = new UserEntity();
+        UserEntity user = new UserEntity();
         user.setId(1L);
-        user.setName("Arpita");
-        user.setEmail("arpita@test.com");
 
-        consent = new UserConsent();
-        consent.setId(10L);
-        consent.setUser(user);
-        consent.setChannel("EMAIL");
-        consent.setStatus(1);
-        consent.setUpdatedAt(now);
-    }
+        LocalDateTime now = LocalDateTime.now();
 
-    @Test
-    void shouldSetRequestInDb() {
-
-        assertEquals(10L, consent.getId());
-        assertEquals(user, consent.getUser());
-        assertEquals("EMAIL", consent.getChannel());
-        assertEquals(1, consent.getStatus());
-        assertEquals(now, consent.getUpdatedAt());
-    }
-
-    @Test
-    void retrieveData() {
+        UserConsent consent = UserConsent.builder()
+                .id(10L)
+                .user(user)
+                .promotionConsent(PromotionConsent.YES)
+                .explicitConsent(now)
+                .build();
 
         assertNotNull(consent);
-        assertEquals("EMAIL", consent.getChannel());
-        assertEquals(1, consent.getStatus());
-        assertEquals(now, consent.getUpdatedAt());
-
-        assertNotNull(consent.getUser());
-        assertEquals("Arpita", consent.getUser().getName());
-        assertEquals("arpita@test.com", consent.getUser().getEmail());
+        assertEquals(10L, consent.getId());
+        assertEquals(user, consent.getUser());
+        assertEquals(PromotionConsent.YES, consent.getPromotionConsent());
+        assertEquals(now, consent.getExplicitConsent());
     }
 
     @Test
-    void shouldHaveDefaultValuesWhenNewObjectCreated() {
+    void shouldSetAndGetFields() {
 
-        UserConsent newConsent = new UserConsent();
+        UserConsent consent = new UserConsent();
 
-        assertEquals("NOT_DECIDED", newConsent.getChannel());
-        assertEquals(0, newConsent.getStatus());
+        UserEntity user = new UserEntity();
+        user.setId(1L);
+
+        consent.setId(20L);
+        consent.setUser(user);
+        consent.setPromotionConsent(PromotionConsent.NO);
+
+        assertEquals(20L, consent.getId());
+        assertEquals(user, consent.getUser());
+        assertEquals(PromotionConsent.NO, consent.getPromotionConsent());
     }
 }

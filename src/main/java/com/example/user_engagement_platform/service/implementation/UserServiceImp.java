@@ -1,17 +1,18 @@
-package com.example.user_engagement_platform.service;
+package com.example.user_engagement_platform.service.implementation;
 
 import com.example.user_engagement_platform.dto.*;
 import com.example.user_engagement_platform.entity.RefreshToken;
 import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.Constant;
-import com.example.user_engagement_platform.enums.PromotionConsent;
 import com.example.user_engagement_platform.exception.*;
+import com.example.user_engagement_platform.kafka.KafkaService;
 import com.example.user_engagement_platform.repository.RefreshTokenRepository;
-import com.example.user_engagement_platform.repository.ConsentRepository;
 import com.example.user_engagement_platform.repository.UserRepository;
+import com.example.user_engagement_platform.service.ConsentService;
+import com.example.user_engagement_platform.service.JwtService;
+import com.example.user_engagement_platform.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +21,14 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserServiceImp implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final ConsentRepository consentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserCachingService userCachingService;
-    private final ConsentProducer consentProducer;
+    private final ConsentService consentService;
+    private final KafkaService kafkaService;
 
     @Transactional
     public RegisterResponse createUser(RegisterRequest request) {
@@ -49,20 +49,10 @@ public class UserService {
         user.setCreatedAt(LocalDateTime.now());
 
         UserEntity savedUser = userRepository.save(user);
-        //saving in consent table
-        UserConsent consent = UserConsent.builder()
-                .user(savedUser)
-                .promotionConsent(PromotionConsent.NO)
-                .explicitConsent(null)
-                .build();
 
-        UserConsent savedConsent = consentRepository.save(consent);
+        UserConsent savedConsent = consentService.createDefaultConsent(savedUser);
 
-        ProducerEvent event = new ProducerEvent();
-        event.setConsentId(savedConsent.getId());
-        event.setActivityId(1L);
-
-        consentProducer.sendImplicit(event);
+        kafkaService.callProducer(savedUser);
 
 
         return RegisterResponse.builder()
@@ -102,22 +92,7 @@ public class UserService {
 
         refreshTokenRepository.save(refreshToken);
 
-        UserConsent consent = consentRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    UserConsent newConsent = UserConsent.builder()
-                            .user(user)
-                            .promotionConsent(PromotionConsent.NO)
-                            .explicitConsent(null)
-                            .build();
-
-                    return consentRepository.save(newConsent);
-                });
-
-        ProducerEvent event = new ProducerEvent();
-        event.setConsentId(consent.getId());
-        event.setActivityId(1L);
-
-        consentProducer.sendImplicit(event);
+        kafkaService.callProducer(user);
 
         return new LoginResponse(
                 accessToken,
@@ -129,37 +104,6 @@ public class UserService {
         );
     }
 
-    public ConsentResponse updateConsent(ConsentRequest request) {
-
-        String loggedInEmail = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-
-        UserCacheDto cachedUser =
-                userCachingService.getUserByEmail(loggedInEmail);
-
-        Long userId = cachedUser.getId();
-
-        UserConsent consent = consentRepository
-                .findByUserId(userId)
-                .orElseThrow(() ->
-                        new IllegalStateException("Consent not found for user: " + userId));
-
-        consent.setPromotionConsent(request.getPromotionConsent());
-        consent.setExplicitConsent(LocalDateTime.now());
-
-        UserConsent savedConsent = consentRepository.save(consent);
-
-        return ConsentResponse.builder()
-                .consentId(savedConsent.getId())
-                .userId(savedConsent.getUser().getId())
-                .promotionConsent(savedConsent.getPromotionConsent())
-                .explicitConsent(savedConsent.getExplicitConsent())
-                .createdAt(savedConsent.getCreatedAt())
-                .updatedAt(savedConsent.getUpdatedAt())
-                .build();
-    }
 
     @Transactional
     public RefreshTokenResponse refreshAccessToken(RefreshTokenRequest request) {

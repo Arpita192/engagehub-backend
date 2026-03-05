@@ -1,6 +1,6 @@
 package com.example.user_engagement_platform.config;
 
-import com.example.user_engagement_platform.service.JwtService;
+import com.example.user_engagement_platform.service.implementation.JwtServiceImp;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,7 +20,7 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final JwtServiceImp jwtServiceImp;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -50,10 +50,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-            String email = jwtService.extractEmail(token);
+            String email = jwtServiceImp.extractEmail(token);
 
             if (email != null &&
-                    jwtService.isTokenValid(token) &&
+                    jwtServiceImp.isTokenValid(token) &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UsernamePasswordAuthenticationToken authToken =

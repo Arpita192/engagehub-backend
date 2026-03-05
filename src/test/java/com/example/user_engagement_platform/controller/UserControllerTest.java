@@ -1,8 +1,10 @@
 package com.example.user_engagement_platform.controller;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import com.example.user_engagement_platform.dto.*;
 import com.example.user_engagement_platform.enums.Constant;
-import com.example.user_engagement_platform.service.UserService;
+import com.example.user_engagement_platform.service.implementation.ConsentServiceImp;
+import com.example.user_engagement_platform.service.implementation.UserServiceImp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import com.example.user_engagement_platform.enums.PromotionConsent;
 
 import java.time.LocalDateTime;
 
@@ -28,7 +31,10 @@ class UserControllerTest {
 
 
     @MockBean
-    private UserService userService;
+    private UserServiceImp userServiceImp;
+
+    @MockBean
+    private ConsentServiceImp consentServiceImp;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -54,7 +60,7 @@ class UserControllerTest {
         response.setCreatedAt(LocalDateTime.now());
 
         //execute the method
-        when(userService.createUser(request)).thenReturn(response);
+        when(userServiceImp.createUser(request)).thenReturn(response);
 
         //mocking api and checking
         mockMvc.perform(post("/api/v1/auth/register")
@@ -94,7 +100,7 @@ class UserControllerTest {
         response.setMobileNumber("9876543210");
         response.setTokenType("Bearer");
         //method called
-        when(userService.login(request)).thenReturn(response);
+        when(userServiceImp.login(request)).thenReturn(response);
         //api+check
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -111,29 +117,29 @@ class UserControllerTest {
     }
 
     @Test
-    void shouldUpdateConsentSuccessfully() throws Exception{
+    void updateConsent_shouldReturn200() throws Exception {
+
         ConsentRequest request = new ConsentRequest();
-        request.setChannel("EMAIL");
-        request.setStatus(2);
+        request.setPromotionConsent(PromotionConsent.YES);
 
         ConsentResponse response = ConsentResponse.builder()
+                .consentId(1L)
                 .userId(1L)
-                .channel("SMS")
-                .status(2)
+                .promotionConsent(PromotionConsent.YES)
+                .explicitConsent(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(userService.updateConsent(request)).thenReturn(response);
+        when(consentServiceImp.updateConsent(any()))
+                .thenReturn(response);
 
-        mockMvc.perform(patch("/api/v1/consents")
+        mockMvc.perform(patch("/consents")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.message").value("Updated successful"))
-                .andExpect(jsonPath("$.data.userId").value(1L))
-                .andExpect(jsonPath("$.data.channel").value("SMS"));
-
+                .andExpect(jsonPath("$.message").value("Consent updated successfully"))
+                .andExpect(jsonPath("$.data.promotionConsent").value("YES"));
     }
 
 }

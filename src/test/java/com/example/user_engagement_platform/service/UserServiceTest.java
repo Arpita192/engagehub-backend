@@ -2,22 +2,22 @@ package com.example.user_engagement_platform.service;
 
 import com.example.user_engagement_platform.dto.*;
 import com.example.user_engagement_platform.entity.RefreshToken;
-import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.Constant;
 import com.example.user_engagement_platform.exception.UserAlreadyExistsException;
 import com.example.user_engagement_platform.exception.UserNotFoundException;
+import com.example.user_engagement_platform.kafka.ConsentProducer;
 import com.example.user_engagement_platform.repository.RefreshTokenRepository;
 import com.example.user_engagement_platform.repository.ConsentRepository;
 import com.example.user_engagement_platform.repository.UserRepository;
+import com.example.user_engagement_platform.service.implementation.JwtServiceImp;
+import com.example.user_engagement_platform.service.implementation.UserCachingServiceImp;
+import com.example.user_engagement_platform.service.implementation.UserServiceImp;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -43,16 +43,16 @@ class UserServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private JwtService jwtService;
+    private JwtServiceImp jwtServiceImp;
 
     @Mock
-    private UserCachingService userCachingService;
+    private UserCachingServiceImp userCachingServiceImp;
 
     @Mock
     private ConsentProducer consentProducer;
 
     @InjectMocks
-    private UserService userService;
+    private UserServiceImp userServiceImp;
 
     @Test
     void shouldCreateUserSuccessfully() {
@@ -81,7 +81,7 @@ class UserServiceTest {
 
         when(userRepository.save(any())).thenReturn(saved);
 
-        RegisterResponse response = userService.createUser(request);
+        RegisterResponse response = userServiceImp.createUser(request);
 
         assertNotNull(response);
         assertEquals(1L, response.getId());
@@ -101,7 +101,7 @@ class UserServiceTest {
                 .thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class,
-                () -> userService.createUser(request));
+                () -> userServiceImp.createUser(request));
     }
 
     @Test
@@ -122,13 +122,13 @@ class UserServiceTest {
         when(passwordEncoder.matches("pass", "encoded"))
                 .thenReturn(true);
 
-        when(jwtService.generateToken(user))
+        when(jwtServiceImp.generateToken(user))
                 .thenReturn("access-token");
 
-        when(jwtService.generateRefreshToken(user))
+        when(jwtServiceImp.generateRefreshToken(user))
                 .thenReturn("refresh-token");
 
-        LoginResponse response = userService.login(request);
+        LoginResponse response = userServiceImp.login(request);
 
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
@@ -148,51 +148,8 @@ class UserServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class,
-                () -> userService.login(request));
+                () -> userServiceImp.login(request));
     }
-
-
-    @Test
-    void shouldUpdateConsentSuccessfully() {
-
-        ConsentRequest request = new ConsentRequest();
-        request.setChannel("EMAIL");
-        request.setStatus(2);
-
-        // Mock Security Context
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getName()).thenReturn("test@test.com");
-
-        SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
-
-        UserCacheDto cached = new UserCacheDto();
-        cached.setId(1L);
-        cached.setEmail("test@test.com");
-
-        when(userCachingService.getUserByEmail("test@test.com"))
-                .thenReturn(cached);
-
-        UserConsent consent = new UserConsent();
-        consent.setId(1L);
-        consent.setChannel("SMS");
-        consent.setStatus(1);
-
-        when(userConsentRepository.findByUserId(1L))
-                .thenReturn(Optional.of(consent));
-
-        when(userConsentRepository.save(any()))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        ConsentResponse response = userService.updateConsent(request);
-
-        assertEquals("EMAIL", response.getChannel());
-        assertEquals(2, response.getStatus());
-
-        verify(userConsentRepository).save(any());
-    }
-
 
     @Test
     void shouldRefreshTokenSuccessfully() {
@@ -212,14 +169,14 @@ class UserServiceTest {
         when(refreshTokenRepository.findByToken("old-token"))
                 .thenReturn(Optional.of(stored));
 
-        when(jwtService.generateToken(user))
+        when(jwtServiceImp.generateToken(user))
                 .thenReturn("new-access");
 
-        when(jwtService.generateRefreshToken(user))
+        when(jwtServiceImp.generateRefreshToken(user))
                 .thenReturn("new-refresh");
 
         RefreshTokenResponse response =
-                userService.refreshAccessToken(request);
+                userServiceImp.refreshAccessToken(request);
 
         assertNotNull(response);
         assertEquals("new-access", response.getAccessToken());

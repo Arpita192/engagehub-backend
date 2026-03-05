@@ -2,6 +2,7 @@ package com.example.user_engagement_platform.controller;
 
 import com.example.user_engagement_platform.dto.*;
 import com.example.user_engagement_platform.service.UserService;
+import com.example.user_engagement_platform.service.ConsentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final ConsentService consentService;
 
     @PostMapping("/auth/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> createUser(
@@ -41,7 +43,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<ConsentResponse>> updateDetail(
             @Valid @RequestBody ConsentRequest request) {
 
-        ConsentResponse response = userService.updateConsent(request);
+        ConsentResponse response = consentService.updateConsent(request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("Consent updated successfully", response)

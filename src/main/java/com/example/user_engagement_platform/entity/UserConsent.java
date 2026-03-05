@@ -43,12 +43,6 @@ public class UserConsent {
     private PromotionConsent promotionConsent;
 
 
-    @OneToOne(mappedBy = "consent",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY)
-    private Implicit implicit;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
