@@ -1,5 +1,6 @@
 package com.example.user_engagement_platform.dto;
 
+import com.example.user_engagement_platform.enums.PromotionConsent;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,8 +10,15 @@ import java.time.LocalDateTime;
 @Builder
 public class ConsentResponse {
 
+    private Long consentId;
+
     private Long userId;
-    private String channel;
-    private int status;
+
+    private PromotionConsent promotionConsent;
+
+    private LocalDateTime explicitConsent;
+
+    private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }

@@ -118,9 +118,6 @@ class UserControllerTest {
 
         ConsentResponse response = ConsentResponse.builder()
                 .userId(1L)
-                .name("Arpita")
-                .email("arpita@test.com")
-                .mobileNumber("9876543210")
                 .channel("SMS")
                 .status(2)
                 .updatedAt(LocalDateTime.now())

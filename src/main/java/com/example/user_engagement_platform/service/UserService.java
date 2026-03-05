@@ -5,9 +5,10 @@ import com.example.user_engagement_platform.entity.RefreshToken;
 import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.Constant;
+import com.example.user_engagement_platform.enums.PromotionConsent;
 import com.example.user_engagement_platform.exception.*;
 import com.example.user_engagement_platform.repository.RefreshTokenRepository;
-import com.example.user_engagement_platform.repository.UserConsentRepository;
+import com.example.user_engagement_platform.repository.ConsentRepository;
 import com.example.user_engagement_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,11 +25,12 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final UserConsentRepository userConsentRepository;
+    private final ConsentRepository consentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserCachingService userCachingService;
     private final ConsentProducer consentProducer;
 
+    @Transactional
     public RegisterResponse createUser(RegisterRequest request) {
 
         String userEmail = request.getEmail().trim().toLowerCase();
@@ -47,6 +49,21 @@ public class UserService {
         user.setCreatedAt(LocalDateTime.now());
 
         UserEntity savedUser = userRepository.save(user);
+        //saving in consent table
+        UserConsent consent = UserConsent.builder()
+                .user(savedUser)
+                .promotionConsent(PromotionConsent.NO)
+                .explicitConsent(null)
+                .build();
+
+        UserConsent savedConsent = consentRepository.save(consent);
+
+        ProducerEvent event = new ProducerEvent();
+        event.setConsentId(savedConsent.getId());
+        event.setActivityId(1L);
+
+        consentProducer.sendImplicit(event);
+
 
         return RegisterResponse.builder()
                 .id(savedUser.getId())
@@ -85,6 +102,23 @@ public class UserService {
 
         refreshTokenRepository.save(refreshToken);
 
+        UserConsent consent = consentRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    UserConsent newConsent = UserConsent.builder()
+                            .user(user)
+                            .promotionConsent(PromotionConsent.NO)
+                            .explicitConsent(null)
+                            .build();
+
+                    return consentRepository.save(newConsent);
+                });
+
+        ProducerEvent event = new ProducerEvent();
+        event.setConsentId(consent.getId());
+        event.setActivityId(1L);
+
+        consentProducer.sendImplicit(event);
+
         return new LoginResponse(
                 accessToken,
                 refreshTokenValue,
@@ -95,7 +129,6 @@ public class UserService {
         );
     }
 
-    @Transactional
     public ConsentResponse updateConsent(ConsentRequest request) {
 
         String loggedInEmail = SecurityContextHolder
@@ -108,36 +141,22 @@ public class UserService {
 
         Long userId = cachedUser.getId();
 
-        UserConsent consent = userConsentRepository.findByUserId(userId)
-                .orElseGet(() -> {
-                    UserConsent newConsent = new UserConsent();
+        UserConsent consent = consentRepository
+                .findByUserId(userId)
+                .orElseThrow(() ->
+                        new IllegalStateException("Consent not found for user: " + userId));
 
-                    UserEntity userRef = new UserEntity();
-                    userRef.setId(userId);
-                    newConsent.setUser(userRef);
+        consent.setPromotionConsent(request.getPromotionConsent());
+        consent.setExplicitConsent(LocalDateTime.now());
 
-                    return newConsent;
-                });
-
-        consent.setChannel(request.getChannel());
-        consent.setStatus(request.getStatus());
-        consent.setUpdatedAt(LocalDateTime.now());
-
-        UserConsent savedConsent = userConsentRepository.save(consent);
-
-        if (savedConsent.getStatus() == 2) {
-
-            ProducerEvent event = new ProducerEvent();
-            event.setConsentId(savedConsent.getId());
-            event.setChannel(savedConsent.getChannel());
-
-            consentProducer.sendConsentEvent(event);
-        }
+        UserConsent savedConsent = consentRepository.save(consent);
 
         return ConsentResponse.builder()
-                .userId(cachedUser.getId())
-                .channel(savedConsent.getChannel())
-                .status(savedConsent.getStatus())
+                .consentId(savedConsent.getId())
+                .userId(savedConsent.getUser().getId())
+                .promotionConsent(savedConsent.getPromotionConsent())
+                .explicitConsent(savedConsent.getExplicitConsent())
+                .createdAt(savedConsent.getCreatedAt())
                 .updatedAt(savedConsent.getUpdatedAt())
                 .build();
     }

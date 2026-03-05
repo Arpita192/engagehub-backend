@@ -1,17 +1,16 @@
 package com.example.user_engagement_platform.entity;
 
+import com.example.user_engagement_platform.enums.PromotionConsent;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,21 +34,26 @@ public class UserConsent {
     )
     private UserEntity user;
 
-    @Column(nullable = false)
-    private String channel = "NOT_DECIDED";
 
-    @Column(nullable = false)
-    private Integer status = 0;
+    @Column(name = "explicit_consent")
+    private LocalDateTime explicitConsent;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "promotion_consent", nullable = false, length = 3)
+    private PromotionConsent promotionConsent;
+
+
+    @OneToOne(mappedBy = "consent",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private Implicit implicit;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @OneToMany(
-            mappedBy = "userConsent",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<NotificationRecord> notifications = new ArrayList<>();
-
 }
-
