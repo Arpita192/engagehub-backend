@@ -31,8 +31,8 @@ public class Implicit {
     @JoinColumn(name = "activity_id", nullable = false)
     private Activity activity;
 
-    @Column(name = "implicit_expiry", nullable = false)
-    private LocalDateTime implicitExpiry;
+    @Column(name = "implicit_consent", nullable = false)
+    private LocalDateTime implicitConsent;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

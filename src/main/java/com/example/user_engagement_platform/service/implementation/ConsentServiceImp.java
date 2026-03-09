@@ -6,6 +6,7 @@ import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.PromotionConsent;
 import com.example.user_engagement_platform.repository.ConsentRepository;
+import com.example.user_engagement_platform.repository.UserRepository;
 import com.example.user_engagement_platform.service.ConsentService;
 import com.example.user_engagement_platform.service.UserCachingService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class ConsentServiceImp implements ConsentService {
 
     private final UserCachingService userCachingService;
     private final ConsentRepository consentRepository;
+    private final UserRepository userRepository;
 
     private Long getLoggedInUserId() {
 
@@ -32,23 +34,7 @@ public class ConsentServiceImp implements ConsentService {
                 .getUserByEmail(email)
                 .getId();
     }
-
-    public UserConsent createDefaultConsent(UserEntity user) {
-
-        UserConsent consent = UserConsent.builder()
-                .user(user)
-                .promotionConsent(PromotionConsent.YES)
-                .build();
-
-        return consentRepository.save(consent);
-    }
-
-    public UserConsent getOrCreateConsent(UserEntity user) {
-
-        return consentRepository.findByUserId(user.getId())
-                .orElseGet(() -> createDefaultConsent(user));
-    }
-
+    @Override
     public ConsentResponse updateConsent(ConsentRequest request) {
 
         Long userId = getLoggedInUserId();
@@ -72,4 +58,19 @@ public class ConsentServiceImp implements ConsentService {
                 .updatedAt(savedConsent.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public void saveConsent(String email) {
+
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserConsent consent = new UserConsent();
+        consent.setUser(user);
+        consent.setPromotionConsent(PromotionConsent.YES);
+
+        consentRepository.save(consent);
+
+    }
+
 }

@@ -1,4 +1,4 @@
-package com.example.user_engagement_platform.service;
+package com.example.user_engagement_platform.service.implementation;
 
 import com.example.user_engagement_platform.dto.ConsentRequest;
 import com.example.user_engagement_platform.dto.UserCacheDto;
@@ -6,8 +6,6 @@ import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.PromotionConsent;
 import com.example.user_engagement_platform.repository.ConsentRepository;
-import com.example.user_engagement_platform.service.implementation.ConsentServiceImp;
-import com.example.user_engagement_platform.service.implementation.UserCachingServiceImp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;

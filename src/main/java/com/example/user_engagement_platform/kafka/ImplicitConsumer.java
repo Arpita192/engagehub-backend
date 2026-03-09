@@ -37,9 +37,9 @@ public class ImplicitConsumer {
         if (existingOpt.isPresent()) {
 
             Implicit existing = existingOpt.get();
-            if (existing.getImplicitExpiry().isAfter(LocalDateTime.now())) {
+            if (existing.getImplicitConsent().isAfter(LocalDateTime.now())) {
 
-                existing.setImplicitExpiry(LocalDateTime.now().plusDays(7));
+                existing.setImplicitConsent(LocalDateTime.now().plusDays(7));
                 implicitRepository.save(existing);
 
             } else {
@@ -57,7 +57,7 @@ public class ImplicitConsumer {
         Implicit newImplicit = Implicit.builder()
                 .user(user)
                 .activity(activity)
-                .implicitExpiry(LocalDateTime.now().plusDays(7))
+                .implicitConsent(LocalDateTime.now().plusDays(7))
                 .build();
 
         implicitRepository.save(newImplicit);

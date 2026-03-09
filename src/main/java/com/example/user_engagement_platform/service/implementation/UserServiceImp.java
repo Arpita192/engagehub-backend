@@ -2,7 +2,6 @@ package com.example.user_engagement_platform.service.implementation;
 
 import com.example.user_engagement_platform.dto.*;
 import com.example.user_engagement_platform.entity.RefreshToken;
-import com.example.user_engagement_platform.entity.UserConsent;
 import com.example.user_engagement_platform.entity.UserEntity;
 import com.example.user_engagement_platform.enums.Constant;
 import com.example.user_engagement_platform.exception.*;
@@ -11,6 +10,7 @@ import com.example.user_engagement_platform.repository.RefreshTokenRepository;
 import com.example.user_engagement_platform.repository.UserRepository;
 import com.example.user_engagement_platform.service.ConsentService;
 import com.example.user_engagement_platform.service.JwtService;
+import com.example.user_engagement_platform.service.RegistrationConsent;
 import com.example.user_engagement_platform.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,8 +29,8 @@ public class UserServiceImp implements UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final ConsentService consentService;
     private final KafkaService kafkaService;
+    private final RegistrationConsent registrationConsent;
 
-    @Transactional
     public RegisterResponse createUser(RegisterRequest request) {
 
         String userEmail = request.getEmail().trim().toLowerCase();
@@ -49,10 +49,15 @@ public class UserServiceImp implements UserService {
         user.setCreatedAt(LocalDateTime.now());
 
         UserEntity savedUser = userRepository.save(user);
+        userRepository.flush();
 
-        UserConsent savedConsent = consentService.createDefaultConsent(savedUser);
+        //get token
+        String accessToken = jwtService.generateToken(user);
+
+        registrationConsent.callConsentApi(accessToken);
 
         kafkaService.callProducer(savedUser);
+
 
 
         return RegisterResponse.builder()
