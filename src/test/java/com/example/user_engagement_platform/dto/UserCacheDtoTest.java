@@ -2,7 +2,6 @@ package com.example.user_engagement_platform.dto;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 

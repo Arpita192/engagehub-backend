@@ -9,6 +9,7 @@ public class ConsentProducer {
     private final KafkaTemplate<String, ProducerEvent> kafkaTemplate;
 
     public ConsentProducer(KafkaTemplate<String, ProducerEvent> kafkaTemplate) {
+
         this.kafkaTemplate = kafkaTemplate;
     }
 
@@ -16,3 +17,4 @@ public class ConsentProducer {
         kafkaTemplate.send("implicit", event);
     }
 }
+

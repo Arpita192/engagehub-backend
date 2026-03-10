@@ -18,7 +18,6 @@ public class RegistrationConsentImp implements RegistrationConsent {
         webClient.post()
                 .uri("http://localhost:8080/internal/consents")
                 .header("Authorization", "Bearer " + accessToken)
-                .httpRequest(r -> System.out.println("🚀 WebClient REQUEST SENT"))
                 .retrieve()
                 .toBodilessEntity()
                 .block();

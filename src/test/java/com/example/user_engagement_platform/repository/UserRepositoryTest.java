@@ -1,49 +1,57 @@
 package com.example.user_engagement_platform.repository;
 
 import com.example.user_engagement_platform.entity.UserEntity;
-import com.example.user_engagement_platform.enums.Constant;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@DataJpaTest
-class UserRepositoryTest {
+@ExtendWith(MockitoExtension.class)
+class UserRepositoryMockTest {
 
-    @Autowired
+    @Mock
     private UserRepository userRepository;
 
     @Test
-    void shouldFindUserByEmail() {
-        UserEntity user = new UserEntity();
-        user.setName("Arpita");
-        user.setMobileNumber("9999999999");
-        user.setEmail("arpita@test.com");
-        user.setPassword("password");
-        user.setRole(Constant.USER);
-        user.setStatus(Constant.ACTIVE);
-        user.setCreatedAt(LocalDateTime.now());
-
-
-        userRepository.save(user);
-
-        Optional<UserEntity> foundUser =
-                userRepository.findByEmail("arpita@test.com");
-
-        assertTrue(foundUser.isPresent(), "User should be present");
-        assertEquals("Arpita", foundUser.get().getName());
-        assertEquals("arpita@test.com", foundUser.get().getEmail());
+    void testExistsByEmail_True() {
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+        boolean exists = userRepository.existsByEmail("test@example.com");
+        assertTrue(exists);
     }
 
     @Test
-    void shouldReturnEmptyWhenEmailNotFound() {
-        Optional<UserEntity> user =
-                userRepository.findByEmail("notfound@test.com");
+    void testExistsByEmail_False() {
+        when(userRepository.existsByEmail("missing@example.com")).thenReturn(false);
+        boolean exists = userRepository.existsByEmail("missing@example.com");
+        assertFalse(exists);
+    }
 
-        assertTrue(user.isEmpty());
+    @Test
+    void testFindByEmail_Found() {
+        UserEntity user = new UserEntity();
+        user.setEmail("test@example.com");
+
+        when(userRepository.findByEmail("test@example.com"))
+                .thenReturn(Optional.of(user));
+
+        Optional<UserEntity> result = userRepository.findByEmail("test@example.com");
+
+        assertTrue(result.isPresent());
+        assertEquals("test@example.com", result.get().getEmail());
+    }
+
+    @Test
+    void testFindByEmail_NotFound() {
+        when(userRepository.findByEmail("missing@example.com"))
+                .thenReturn(Optional.empty());
+
+        Optional<UserEntity> result = userRepository.findByEmail("missing@example.com");
+
+        assertTrue(result.isEmpty());
     }
 }

@@ -6,13 +6,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ProducerConfig {
-
-//    @Bean
-//    public NewTopic createMyTopic() {
-//
-//        return new NewTopic("notifications.requested", 3, (short) 1);
-//    }
-
     @Bean
     public NewTopic createImplicitTopic() {
         return new NewTopic("implicit", 3, (short) 1);

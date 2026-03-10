@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 class JwtServiceImpTest {
 
@@ -26,7 +25,7 @@ class JwtServiceImpTest {
         String token = jwtService.generateToken(user);
 
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
     }
 
     @Test
@@ -38,7 +37,7 @@ class JwtServiceImpTest {
         String token = jwtService.generateRefreshToken(user);
 
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
     }
 
     @Test
