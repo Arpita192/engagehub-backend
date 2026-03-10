@@ -1,6 +1,8 @@
 package com.example.user_engagement_platform.controller;
 
 import com.example.user_engagement_platform.dto.*;
+import com.example.user_engagement_platform.service.DailerService;
+import com.example.user_engagement_platform.service.NotificationService;
 import com.example.user_engagement_platform.service.UserService;
 import com.example.user_engagement_platform.service.ConsentService;
 import jakarta.validation.Valid;
@@ -16,6 +18,8 @@ public class UserController {
 
     private final UserService userService;
     private final ConsentService consentService;
+    private final DailerService dailerService;
+    private final NotificationService notificationService;
 
     @PostMapping("/auth/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> createUser(
@@ -58,6 +62,26 @@ public class UserController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Token refreshed", response)
+        );
+    }
+    @PostMapping("/dialer")
+    public ResponseEntity<ApiResponse<String>> createDialer(
+            @RequestBody DialerDtoRequest request){
+
+        String message = dailerService.saveDialerData(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(message, null)
+        );
+    }
+
+    @PostMapping("notification")
+    public ResponseEntity<ApiResponse<String>> createNotification(@Valid @RequestBody NotificationDtoRequest request){
+
+        String message = notificationService.saveNotificationData(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(message,null)
         );
     }
 }

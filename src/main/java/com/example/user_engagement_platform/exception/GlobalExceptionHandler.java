@@ -44,6 +44,13 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>("failed", errorMessage, null));
     }
+    @ExceptionHandler(ActivityNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> ActivityNotFound(ActivityNotFoundException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>("failed", ex.getMessage(), null));
+    }
 
 
 }

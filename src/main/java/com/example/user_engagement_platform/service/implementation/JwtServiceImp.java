@@ -16,7 +16,7 @@ public class JwtServiceImp implements JwtService {
 
     private final Key signingKey;
 
-    private static final long EXPIRATION_TIME = 1000L * 60*24;
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24;
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 15;
 
     public JwtServiceImp(@Value("${jwt.secret}") String secret) {

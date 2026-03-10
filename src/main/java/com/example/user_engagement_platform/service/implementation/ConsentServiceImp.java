@@ -37,6 +37,7 @@ public class ConsentServiceImp implements ConsentService {
     @Override
     public ConsentResponse updateConsent(ConsentRequest request) {
 
+
         Long userId = getLoggedInUserId();
 
         UserConsent consent = consentRepository
@@ -45,7 +46,7 @@ public class ConsentServiceImp implements ConsentService {
                         new IllegalStateException("Consent not found for user: " + userId));
 
         consent.setPromotionConsent(request.getPromotionConsent());
-        consent.setExplicitConsent(LocalDateTime.now());
+        consent.setExplicitConsent(LocalDateTime.now().plusDays(7));
 
         UserConsent savedConsent = consentRepository.save(consent);
 
