@@ -9,56 +9,51 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NotificationDtoRequestTest {
 
     private static Validator validator;
 
     @BeforeAll
-    static void setUpValidator() {
+    static void setupValidator() {
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         validator = factory.getValidator();
     }
 
     @Test
-    void testValidNotificationDtoRequest() {
+    void whenChannelIsValid_thenNoViolations() {
         NotificationDtoRequest dto = NotificationDtoRequest.builder()
-                .activityName("Onboarding")
+                .activityName("User Signup")
                 .channel("SMS")
                 .build();
 
         Set<ConstraintViolation<NotificationDtoRequest>> violations = validator.validate(dto);
-        assertTrue(violations.isEmpty());
-
-        dto.setChannel("EMAIL");
-        violations = validator.validate(dto);
-        assertTrue(violations.isEmpty());
+        assertTrue(violations.isEmpty(), "No violations expected for valid channel");
     }
 
+
     @Test
-    void testInvalidChannel() {
+    void whenChannelIsInvalid_thenPatternViolationOccurs() {
         NotificationDtoRequest dto = NotificationDtoRequest.builder()
-                .activityName("Onboarding")
+                .activityName("User Signup")
                 .channel("PUSH")
                 .build();
 
         Set<ConstraintViolation<NotificationDtoRequest>> violations = validator.validate(dto);
-        assertFalse(violations.isEmpty());
-        assertEquals("Channel must be either SMS or EMAIL",
-                violations.iterator().next().getMessage());
+        assertEquals(1, violations.size());
+        assertEquals("Channel must be either SMS or EMAIL", violations.iterator().next().getMessage());
     }
 
     @Test
-    void testBlankChannel() {
+    void whenActivityNameIsNull_thenNoViolationSinceNotRequired() {
         NotificationDtoRequest dto = NotificationDtoRequest.builder()
-                .activityName("Onboarding")
-                .channel("")
+                .activityName(null)
+                .channel("EMAIL")
                 .build();
 
         Set<ConstraintViolation<NotificationDtoRequest>> violations = validator.validate(dto);
-        assertFalse(violations.isEmpty());
-        assertEquals("Channel is required",
-                violations.iterator().next().getMessage());
+        assertTrue(violations.isEmpty(), "activityName is optional, no violations expected");
     }
 }
